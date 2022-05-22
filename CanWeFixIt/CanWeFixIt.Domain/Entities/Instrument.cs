@@ -1,4 +1,4 @@
-﻿namespace CanWeFixItService
+﻿namespace CanWeFixIt.Domain.Entitites
 {
     public class Instrument
     {

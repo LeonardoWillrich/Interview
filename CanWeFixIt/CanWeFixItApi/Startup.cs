@@ -1,5 +1,13 @@
+using AutoMapper;
+using CanWeFixIt.EntityFramework;
+using CanWeFixIt.EntityFramework.DataSeeders;
+using CanWeFixIt.Service;
+using CanWeFixIt.Service.Services;
+using CanWeFixIt.Service.Shared.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,18 +24,35 @@ namespace CanWeFixItApi
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        private SqliteConnection _connection;
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            _connection = new SqliteConnection(Configuration.GetConnectionString("Default"));
+            _connection.Open();
+
+            services.AddDbContext<ApplicationDbContext>(
+                options => options.UseSqlite(_connection));
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "CanWeFixItApi", Version = "v1" });
             });
-            services.AddSingleton<IDatabaseService, DatabaseService>();
+
+            var mapperConfig = new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new ApplicationAutoMapperProfile());
+            });
+            IMapper mapper = mapperConfig.CreateMapper();
+            services.AddSingleton(mapper);
+
+            services.AddScoped<IDbSeeder, CanWeFixItDbSeeder>();
+            services.AddScoped<IInstrumentService, InstrumentService>();
+            services.AddScoped<IMarketDataService, MarketDataService>();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -37,10 +62,13 @@ namespace CanWeFixItApi
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CanWeFixItApi v1"));
             }
 
-            // Populate in-memory database with data
-            var database = app.ApplicationServices.GetService(typeof(IDatabaseService)) as IDatabaseService;
-            database?.SetupDatabase();
-            
+            using (var serviceScope = app.ApplicationServices.CreateScope())
+            {
+                var services = serviceScope.ServiceProvider;
+                var dbSeeder = services.GetService<IDbSeeder>();
+                _ = dbSeeder?.ExecuteSeeder();
+            }
+
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();

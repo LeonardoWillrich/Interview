@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 namespace CanWeFixItService
 {
     // Leonardo
-    public class DatabaseService : IDatabaseService
+    public class DatabaseService //: IDatabaseService
     {
         // See SQLite In-Memory example:
         // https://github.com/dotnet/docs/blob/main/samples/snippets/standard/data/sqlite/InMemorySample/Program.cs
@@ -24,15 +24,15 @@ namespace CanWeFixItService
             _connection.Open();
         }
         
-        public IEnumerable<Instrument> Instruments()
-        {
-            return _connection.QueryAsync<Instrument>("SQL GOES HERE");
-        }
+        //public IEnumerable<Instrument> Instruments()
+        //{
+        //    return _connection.QueryAsync<Instrument>("SQL GOES HERE");
+        //}
 
-        public async Task<IEnumerable<MarketData>> MarketData()
-        {
-            return await _connection.QueryAsync<MarketData>("SELECT Id, DataValue FROM MarketData WHERE Active = 0");
-        }
+        //public async Task<IEnumerable<MarketData>> MarketData()
+        //{
+        //    return await _connection.QueryAsync<MarketData>("SELECT Id, DataValue FROM MarketData WHERE Active = 0");
+        //}
 
         /// <summary>
         /// This is complete and will correctly load the test data.
